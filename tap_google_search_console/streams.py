@@ -34,7 +34,7 @@ STREAMS = {
     },
 
     'performance_report_custom': {
-        'key_properties': ['site_url', 'search_type', 'date', 'dimensions_hash_key'],
+        'key_properties': ['site_url', 'search_type', 'date', 'page', 'query', 'dimensions_hash_key'],
         'replication_method': 'INCREMENTAL',
         'replication_keys': ['date'],
         'path': 'sites/{}/searchAnalytics/query',
@@ -46,7 +46,18 @@ STREAMS = {
         },
         'bookmark_type': 'datetime',
         'pagination': 'body',
-        'sub_types': ['web', 'image', 'video']
+        'sub_types': ['web', 'image', 'video'],
+        'dimensionFilterGroups': [
+            {
+                'filters': [
+                    {
+                        'dimension': 'COUNTRY',
+                        'operator': 'EQUALS',
+                        'expression': 'aus'
+                    }
+                ]
+            }
+        ]
     },
 
     'performance_report_date': {

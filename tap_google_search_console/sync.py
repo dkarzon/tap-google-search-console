@@ -125,7 +125,8 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
                   bookmark_field=None,
                   data_key=None,
                   body_params=None,
-                  id_fields=None):
+                  id_fields=None,
+                  dimensionFilterGroups=None):
 
     # Get the latest bookmark for the stream and set the last_datetime
     last_datetime = None
@@ -150,7 +151,8 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
             body = {
                 'startRow': offset,
                 'rowLimit': limit,
-                **body_params # adds in endpoint specific, sort, filter body params
+                **body_params, # adds in endpoint specific, sort, filter body params
+                'dimensionFilterGroups': dimensionFilterGroups
             }
             params = static_params
         elif pagination == 'params':
@@ -159,10 +161,16 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
                 'rowLimit': limit,
                 **static_params # adds in endpoint specific, sort, filter body params
             }
-            body = body_params
+            body = {
+                **body_params,
+                'dimensionFilterGroups': dimensionFilterGroups
+            }
         else:
             params = static_params
-            body = body_params
+            body = {
+                **body_params,
+                'dimensionFilterGroups': dimensionFilterGroups
+            }
 
         LOGGER.info('Stream: {}, Site: {}, Type: {} - Batch Sync start, Offset: {}'.format(
             stream_name,
@@ -326,6 +334,7 @@ def sync(client, config, catalog, state):
         endpoint_config = STREAMS[stream_name]
         bookmark_field = next(iter(endpoint_config.get('replication_keys', [])), None)
         body_params = endpoint_config.get('body', {})
+        dimensionFilterGroups = []
         endpoint_total = 0
         # Initialize body
         body = endpoint_config.get('body', {})
@@ -349,6 +358,8 @@ def sync(client, config, catalog, state):
 
                 # Set dimension_list for performance_reports
                 if stream_name == 'performance_report_custom':
+                    dimensionFilterGroups = endpoint_config.get('dimensionFilterGroups', [])
+                    LOGGER.info('stream: {}, dimensionFilterGroups: {}'.format(stream_name, dimensionFilterGroups))
                     dimensions_list = []
                     # Create dimensions_list from catalog breadcrumb
                     stream = catalog.get_stream(stream_name)
@@ -423,7 +434,8 @@ def sync(client, config, catalog, state):
                             bookmark_field=bookmark_field,
                             data_key=endpoint_config.get('data_key', None),
                             body_params=body,
-                            id_fields=endpoint_config.get('key_properties'))
+                            id_fields=endpoint_config.get('key_properties'),
+                            dimensionFilterGroups=dimensionFilterGroups)
 
                         # Increment totals
                         endpoint_total = endpoint_total + total_records
